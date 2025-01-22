@@ -1,0 +1,56 @@
+{% extends "./layout.html" %}
+
+{% block title %}
+Link Your Camera
+{% endblock %}
+
+{% block main %}
+<div class="mt-20 font-bold text-3xl">
+    <div class="mx-10 max-w-6xl">
+        <h2 class="text-4xl font-semibold tracking-tight">Link Your Camera</h2>
+        <p class="mt-4 text-lg text-gray-700">Enter your camera's IP streaming address to start streaming.</p>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mt-4">
+            {% for category, message in messages %}
+            <p
+                class="text-lg text-{{ 'green-600' if category == 'success' else 'red-600' if category == 'error' else 'yellow-600' }}">
+                {{ message }}
+            </p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Start stream form -->
+        <form action="{{ url_for('linkCamera') }}" method="POST">
+            <div class="mt-6 flex gap-x-4">
+                <input id="camera-url" name="camera-url" type="text" required
+                    class="w-4/5 flex-auto rounded-md bg-white/5 px-3.5 py-2 text-base outline outline-1 -outline-offset-1 placeholder:text-gray-500 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                    placeholder="Enter your camera's IP URL">
+                <button type="submit"
+                    class="w-1/5 flex-none text-white rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
+                    Start Streaming
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="mx-10 mt-10 max-w-6xl">
+        <!-- Show stream status -->
+        {% if streaming %}
+        <p class="text-lg text-green-600">Stream {{ camera_url }} is running.</p>
+        <form action="{{ url_for('kill_stream') }}" method="POST">
+            <button type="submit"
+                class="w-1/5 flex-none text-white rounded-md bg-red-500 px-3.5 py-2.5 text-sm font-semibold shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
+                Stop Streaming
+            </button>
+        </form>
+        {% else %}
+        <p class="text-lg text-gray-700">No stream connected.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
