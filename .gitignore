@@ -22,6 +22,6 @@ instance/
 static/uploads
 detected_faces
 face_embeddings
-models
+# models
 
 db.sqlite3
