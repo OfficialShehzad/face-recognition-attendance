@@ -18,3 +18,10 @@ venv/
 
 # Local settings
 instance/
+
+static/uploads
+detected_faces
+face_embeddings
+models
+
+db.sqlite3

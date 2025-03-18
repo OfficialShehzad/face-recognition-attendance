@@ -1,11 +1,56 @@
 {% extends "./layout.html" %}
 
 {% block title %}
-About
+Employee Attendance
 {% endblock %}
 
 {% block main %}
-<div class="mt-14 font-bold text-3xl">
-    <h1>Employee attendance</h1>
+<div class="mt-14 flex justify-center">
+    <div class="w-full max-w-4xl bg-white shadow-lg rounded-2xl p-6"
+        style="min-width: 100vw; max-height: 100vh; overflow: auto;">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Employee Attendance Summary</h1>
+
+        <div class="flex justify-center mb-6">
+            <form method="GET" action="{{ url_for('employeeAttendance') }}" class="flex items-center space-x-4">
+                <label for="date" class="text-gray-800 font-semibold">Select Date:</label>
+                <input type="date" id="date" name="date" value="{{ selected_date }}"
+                    class="border border-gray-300 rounded-lg p-2 text-gray-800">
+                <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-700">
+                    Filter
+                </button>
+            </form>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="p-4">
+            <table class="w-full bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl rounded-lg">
+                <thead class="text-gray-200 text-sm uppercase">
+                    <tr>
+                        <th class="py-3 px-4 text-left border-b border-gray-700">Employee Name</th>
+                        <th class="py-3 px-4 text-left border-b border-gray-700">Date</th>
+                        <th class="py-3 px-4 text-left border-b border-gray-700">Login</th>
+                        <th class="py-3 px-4 text-left border-b border-gray-700">Logout</th>
+                        <th class="py-3 px-4 text-left border-b border-gray-700">Total Duration</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-700">
+                    {% for record in attendance_summary %}
+                    <tr class="hover:bg-gray-700 transition-all duration-300">
+                        <td class="py-3 px-4 font-semibold">{{ record.user_name }}</td>
+                        <td class="py-3 px-4 text-gray-300 text-sm">{{ record.date }}</td>
+                        <td class="py-3 px-4 text-gray-300 text-sm">{{ record.first_entry }}</td>
+                        <td class="py-3 px-4 text-gray-300 text-sm">{{ record.last_exit }}</td>
+                        <td class="py-3 px-4 text-gray-300 text-sm">{{ record.total_duration }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="py-4 px-6 text-center text-gray-400">No attendance records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
 </div>
 {% endblock %}

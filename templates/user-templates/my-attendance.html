@@ -1,0 +1,39 @@
+{% extends "./layout.html" %}
+
+{% block title %}
+My Attendance
+{% endblock %}
+
+{% block main %}
+<div class="mt-14 flex justify-center">
+    <div class="w-full max-w-3xl bg-white shadow-lg rounded-2xl p-6"
+        style="min-width: 100vw; max-height: 100vh; overflow: auto;">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">My Attendance Summary</h1>
+
+        <table class="w-full bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl rounded-lg">
+            <thead class="text-gray-200 text-sm uppercase">
+                <tr>
+                    <th class="py-3 px-4 text-left border-b border-gray-700">Date</th>
+                    <th class="py-3 px-4 text-left border-b border-gray-700">Login</th>
+                    <th class="py-3 px-4 text-left border-b border-gray-700">Logout</th>
+                    <th class="py-3 px-4 text-left border-b border-gray-700">Total Duration</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for record in attendance_summary %}
+                <tr class="hover:bg-gray-700 transition-all duration-300">
+                    <td class="py-3 px-4 font-semibold">{{ record.date }}</td>
+                    <td class="py-3 px-4 text-gray-300 text-sm">{{ record.first_entry }}</td>
+                    <td class="py-3 px-4 text-gray-300 text-sm">{{ record.last_exit }}</td>
+                    <td class="py-3 px-4 text-gray-300 text-sm">{{ record.duration }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="py-4 px-6 text-center text-gray-400">No attendance records found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

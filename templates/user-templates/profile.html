@@ -1,0 +1,237 @@
+{% extends "./layout.html" %}
+
+{% block title %}
+Profile
+{% endblock %}
+
+{% block main %}
+<div></div>
+<div class="mt-20 mx-20 font-bold text-3xl flex justify-around w-100">
+    <div class="" style="min-width: 500px; max-width: 600px;">
+        <h1>User Profile</h1>
+
+        <p class="mt-4 text-lg text-gray-700">Please upload 9 images in the following poses. <br /> (FYI The order
+            doesn't
+            matter)</p>
+
+        <img src="{{ url_for('static', filename='images/face_angles.jpg') }}" alt="face_angles" width="300px" />
+    </div>
+
+    <div class="" style="min-width: 500px;">
+        {% if image_length < 9 %} <div>
+            <form action="{{ url_for('addImages') }}" method="POST" enctype="multipart/form-data" class="mb-2">
+
+                <!-- Name Input Field -->
+                <div class="mt-6 mb-3 w-full">
+                    <label for="name" class="block mb-2 text-lg font-semibold text-gray-800">
+                        Your Name
+                    </label>
+                    <input type="text" id="name" name="name" placeholder="Enter your name"
+                        class="w-full text-sm h-12 px-4 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-gray-50 transition-all duration-200 placeholder-gray-400 placeholder-sm"
+                        required />
+                </div>
+
+
+                <!-- File Input Label -->
+                <label class="block mb-4 text-lg font-semibold text-gray-800" for="multiple_files">
+                    Upload up to 9 images
+                </label>
+
+                <!-- File Input Field -->
+                <div class="flex items-center justify-center w-full">
+                    <label for="multiple_files"
+                        class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors duration-200 shadow-sm">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6 px-6">
+                            <!-- Upload Icon -->
+                            <svg class="w-10 h-10 mb-3 text-gray-400" aria-hidden="true"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+                            </svg>
+                            <!-- Upload Text -->
+                            <p class="mb-2 text-sm text-gray-500">
+                                <span class="font-semibold">Click to upload</span> or drag and drop
+                            </p>
+                            <p class="text-xs text-gray-500">SVG, PNG, JPG, or GIF</p>
+                        </div>
+                        <!-- Hidden File Input -->
+                        <input id="multiple_files" type="file" name="images" accept="image/*" multiple class="hidden"
+                            onchange="handleFileSelect(event)" />
+                    </label>
+                </div>
+
+                <!-- Thumbnails Preview Container -->
+                <div id="preview" class="grid grid-cols-5 mt-4 gap-4 relative"></div>
+
+
+                <!-- Upload Button -->
+                <button type="submit"
+                    class="mt-6 w-full px-4 py-2 text-lg bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-md">
+                    Upload Images
+                </button>
+            </form>
+    </div>
+    {% else %}
+    <form action="{{ url_for('reset_user_images') }}" method="POST" class="mb-2">
+        <button type="submit" class="mt-4 p-2 bg-red-500 text-base text-white rounded">Reset Images</button>
+    </form>
+    {% endif %}
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="my-4">
+        {% for category, message in messages %}
+        <p
+            class="text-lg text-{{ 'green-600' if category == 'success' else 'red-600' if category == 'error' else 'yellow-600' }}">
+            {{ message }}
+        </p>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% if image_length > 0 %}
+    <p class="my-4 text-xl text-gray-700">Your uploads</p>
+    {% endif %}
+
+    <div class="w-full grid grid-cols-2 md:grid-cols-3 gap-4">
+        {% for image in images %}
+        <div class="relative w-[100px] h-[100px]">
+            <!-- Image -->
+            <img src="{{ url_for('static', filename=image[0].replace('static/', '')) }}" alt="User Image"
+                class="h-full w-full object-cover rounded-lg">
+
+            <!-- Overlay when trained -->
+            {% if image[1] in trained_images %}
+            <div class="absolute inset-0 bg-green-500 bg-opacity-40 flex items-center justify-center rounded-lg p-4">
+                <span class="text-white font-semibold text-sm">Trained</span>
+            </div>
+            {% else %}
+            {% if trained_image_length > 0 %}
+            <div class="absolute inset-0 bg-red-500 bg-opacity-40 flex items-center justify-center rounded-lg p-4">
+                <span class="text-white font-semibold text-sm">No face detected</span>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+        <!-- <img class="h-auto max-w-full rounded-lg" src="https://flowbite.s3.amazonaws.com/docs/gallery/square/image.jpg" alt=""> -->
+    </div>
+
+    <div>
+
+        {% if trained_image_length < image_length %} <form action="{{ url_for('trainImages') }}" method="POST"
+            class="mb-2">
+            <button type="submit" class="mt-4 p-2 bg-green-500 text-base text-white rounded">Train Images</button>
+            </form>
+            {% endif %}
+    </div>
+
+</div>
+</div>
+
+<script>
+    let selectedFiles = []; // Keep track of selected files manually
+
+    function handleFileSelect(event)
+    {
+        const preview = document.getElementById('preview');
+        preview.innerHTML = ''; // Clear previous previews
+        const files = Array.from(event.target.files);
+
+        if (files.length > 9)
+        {
+            alert('You can only upload up to 9 images');
+            event.target.value = '';
+            selectedFiles = [];
+            return;
+        }
+
+        selectedFiles = files; // Store current selection
+
+        // Render previews
+        selectedFiles.forEach((file, index) =>
+        {
+            if (file.type.startsWith('image/'))
+            {
+                const reader = new FileReader();
+                reader.onload = function (e)
+                {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'relative';
+
+                    // Thumbnail Image
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'object-cover rounded-lg shadow';
+
+                    // Remove Button
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = '✖️';
+                    removeBtn.className = 'absolute top-4 right-4 bg-white rounded-full p-1 shadow-md hover:bg-red-500 hover:text-white text-sm';
+                    removeBtn.onclick = function ()
+                    {
+                        removeFile(index);
+                    };
+
+                    wrapper.appendChild(img);
+                    // wrapper.appendChild(removeBtn);
+                    preview.appendChild(wrapper);
+                }
+                reader.readAsDataURL(file);
+            } else
+            {
+                // For non-image files (just showing name + remove)
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative';
+
+                const p = document.createElement('p');
+                p.textContent = file.name;
+                p.className = 'p-2 bg-gray-100 rounded';
+                p.style = '';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✖️';
+                removeBtn.className = 'absolute top-0 right-0 bg-white rounded-full p-1 shadow-md hover:bg-red-500 hover:text-white text-sm';
+                removeBtn.onclick = function ()
+                {
+                    removeFile(index);
+                };
+
+                wrapper.appendChild(p);
+                wrapper.appendChild(removeBtn);
+                preview.appendChild(wrapper);
+            }
+        });
+
+        // Update input files (can't modify FileList directly)
+        updateInputFiles();
+    }
+
+    function removeFile(index)
+    {
+        selectedFiles.splice(index, 1); // Remove the file
+
+        // Re-render previews
+        const event = { target: { files: selectedFiles } };
+        handleFileSelect(event);
+    }
+
+    function updateInputFiles()
+    {
+        const input = document.getElementById('multiple_files');
+        const dataTransfer = new DataTransfer();
+
+        selectedFiles.forEach(file =>
+        {
+            dataTransfer.items.add(file);
+        });
+
+        input.files = dataTransfer.files;
+    }
+</script>
+
+
+{% endblock %}

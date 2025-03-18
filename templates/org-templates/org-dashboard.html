@@ -1,11 +1,47 @@
 {% extends "./layout.html" %}
 
-{% block title %}
-About
-{% endblock %}
+{% block title %}Org Dashboard{% endblock %}
 
 {% block main %}
-<div class="mt-14 font-bold text-3xl">
-    <h1>Org Dashboard</h1>
+<div class="mt-14 p-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">Organization Dashboard - {{ date }}</h1>
+
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="p-4 bg-green-500 text-white rounded-xl shadow-lg">
+            <h2 class="text-xl">Total Employees</h2>
+            <p class="text-2xl font-bold">{{ total_employees }}</p>
+        </div>
+        <div class="p-4 bg-blue-500 text-white rounded-xl shadow-lg">
+            <h2 class="text-xl">Present Today</h2>
+            <p class="text-2xl font-bold">{{ present_today }}</p>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full bg-gray-800 text-white rounded-lg shadow-lg">
+            <thead class="bg-gray-700">
+                <tr>
+                    <th class="py-3 px-4 text-left">Employee Name</th>
+                    <th class="py-3 px-4 text-left">First Entry</th>
+                    <th class="py-3 px-4 text-left">Last Exit</th>
+                    <th class="py-3 px-4 text-left">Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in summary %}
+                <tr class="border-t border-gray-600">
+                    <td class="py-3 px-4">{{ record.user_name }}</td>
+                    <td class="py-3 px-4">{{ record.first_entry }}</td>
+                    <td class="py-3 px-4">{{ record.last_exit }}</td>
+                    <td class="py-3 px-4">{{ record.duration }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="py-4 px-6 text-center text-gray-400">No records for today.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

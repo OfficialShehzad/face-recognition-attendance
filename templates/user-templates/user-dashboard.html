@@ -1,14 +1,24 @@
 {% extends "./layout.html" %}
 
-{% block title %}
-About
-{% endblock %}
+{% block title %}Employee Dashboard{% endblock %}
 
 {% block main %}
-<div class="mt-20 font-bold text-3xl">
+<div class="mt-14 p-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">My Attendance - {{ date }}</h1>
 
-
-    <h1>User Dashboard</h1>
-    <p>{{ session['user_details'] }}</p>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="p-4 bg-green-500 text-white rounded-xl shadow-lg">
+            <h2 class="text-xl">First Entry</h2>
+            <p class="text-lg">{{ first_entry or "N/A" }}</p>
+        </div>
+        <div class="p-4 bg-blue-500 text-white rounded-xl shadow-lg">
+            <h2 class="text-xl">Last Exit</h2>
+            <p class="text-lg">{{ last_exit or "N/A" }}</p>
+        </div>
+        <div class="p-4 bg-purple-500 text-white rounded-xl shadow-lg">
+            <h2 class="text-xl">Total Duration</h2>
+            <p class="text-lg">{{ duration or "N/A" }}</p>
+        </div>
+    </div>
 </div>
 {% endblock %}

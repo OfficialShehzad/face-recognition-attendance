@@ -4,8 +4,7 @@
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center">
                     <div class="shrink-0">
-                        <img class="size-8" src="https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=500"
-                            alt="Your Company">
+                        <img class="size-8" src="static/images/logo.png" alt="Your Company">
                     </div>
                     <div class="hidden md:block">
                         <div class="ml-10 flex items-baseline space-x-4">
@@ -23,10 +22,6 @@
                             <a href="/employee-attendance"
                                 class="rounded-md px-3 py-2 text-sm font-medium {% if request.path == '/employee-attendance' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
                                 Employee Attendance
-                            </a>
-                            <a href="/profile"
-                                class="rounded-md px-3 py-2 text-sm font-medium {% if request.path == '/profile' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %}">
-                                Profile
                             </a>
                             {% elif session['user_type'] == 'employee' %}
                             <!-- Menu for Employee -->
