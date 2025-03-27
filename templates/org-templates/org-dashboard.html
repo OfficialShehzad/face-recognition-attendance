@@ -12,18 +12,29 @@
             <p class="text-2xl font-bold">{{ total_employees }}</p>
         </div>
         <div class="p-4 bg-blue-500 text-white rounded-xl shadow-lg">
-            <h2 class="text-xl">Present Today</h2>
+            <h2 class="text-xl">Present Today ({{ date }})</h2>
             <p class="text-2xl font-bold">{{ present_today }}</p>
         </div>
     </div>
 
     <div class="overflow-x-auto">
+        <div class="flex justify-center mb-6">
+            <form method="GET" action="{{ url_for('userDashboard') }}" class="flex items-center space-x-4">
+                <label for="date" class="text-gray-800 font-semibold">Select Date:</label>
+                <input type="date" id="date" name="date" value="{{ selected_date }}"
+                    class="border border-gray-300 rounded-lg p-2 text-gray-800">
+                <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-700">
+                    Filter
+                </button>
+            </form>
+        </div>
+
         <table class="w-full bg-gray-800 text-white rounded-lg shadow-lg">
             <thead class="bg-gray-700">
                 <tr>
                     <th class="py-3 px-4 text-left">Employee Name</th>
-                    <th class="py-3 px-4 text-left">First Entry</th>
-                    <th class="py-3 px-4 text-left">Last Exit</th>
+                    <th class="py-3 px-4 text-left">Login</th>
+                    <th class="py-3 px-4 text-left">Logout</th>
                     <th class="py-3 px-4 text-left">Duration</th>
                 </tr>
             </thead>

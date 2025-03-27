@@ -274,72 +274,151 @@ def userDashboard():
     user_type = session['user_type']
     user_id = session['user_id']
 
-    today = datetime.date.today()
-    start_datetime = datetime.datetime.combine(today, datetime.datetime.min.time())
-    end_datetime = datetime.datetime.combine(today, datetime.datetime.max.time())
+    # Get selected date from query string
+    selected_date_str = request.args.get('date')
+    
+    if selected_date_str:
+        selected_date = datetime.datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+    else:
+        selected_date = datetime.date.today()
+
+    start_datetime = datetime.datetime.combine(selected_date, datetime.datetime.min.time())
+    end_datetime = datetime.datetime.combine(selected_date, datetime.datetime.max.time())
 
     if user_type == 'employee':
         # Employee attendance
         c.execute("""
-            SELECT DATE(timestamp), MIN(timestamp), MAX(timestamp)
+            SELECT timestamp, status
             FROM attendance 
             WHERE user_id = ? 
             AND timestamp BETWEEN ? AND ?
+            ORDER BY timestamp ASC
         """, (user_id, start_datetime, end_datetime))
-        record = c.fetchone()
 
-        first_entry = record[1]
-        last_exit = record[2]
-        duration = None
+        records = c.fetchall()
 
-        # Convert strings to datetime
-        if first_entry and last_exit:
-            first_entry_dt = datetime.datetime.fromisoformat(first_entry)
-            last_exit_dt = datetime.datetime.fromisoformat(last_exit)
-            diff = last_exit_dt - first_entry_dt
-            duration = str(diff)
+        total_duration = datetime.timedelta()
+        current_entry = None
+        in_work = False
+
+        # Define your local timezone
+        LOCAL_TZ = ZoneInfo('Asia/Kolkata')  # IST timezone
+
+        first_entry_str = None
+        last_exit_str = None
+
+        for timestamp_str, status in records:
+            dt_utc = datetime.datetime.fromisoformat(timestamp_str).replace(tzinfo=ZoneInfo('UTC'))
+            dt_local = dt_utc.astimezone(LOCAL_TZ)
+
+            if status == 'entered':
+                if not first_entry_str:
+                    first_entry_str = dt_local.strftime('%Y-%m-%d %H:%M:%S')
+                current_entry = dt_local
+            elif status == 'exited' and current_entry:
+                duration = dt_local - current_entry
+                total_duration += duration
+                last_exit_str = dt_local.strftime('%Y-%m-%d %H:%M:%S')
+                current_entry = None
+
+        if current_entry:
+            # Still in work
+            duration_str = 'Not exited'
+        else:
+            # Format total duration
+            total_seconds = int(total_duration.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            seconds = total_seconds % 60
+            duration_str = f"{hours}h {minutes}m {seconds}s"
+
+        if not first_entry_str:
+            first_entry_str = 'N/A'
+        if not last_exit_str:
+            last_exit_str = 'N/A'
 
         return render_template("user-templates/user-dashboard.html", 
-                               date=record[0], 
-                               first_entry=first_entry, 
-                               last_exit=last_exit, 
-                               duration=duration)
-
+                               date=selected_date, 
+                               selected_date=selected_date_str,
+                               first_entry=first_entry_str, 
+                               last_exit=last_exit_str, 
+                               duration=duration_str)
     else:
-        # Org dashboard
+        # Org dashboard with date filter
+
+        # Step 1: Get all attendance records for selected period
         c.execute("""
-            SELECT u.user_name, MIN(a.timestamp), MAX(a.timestamp)
+            SELECT u.user_name, a.timestamp, a.status
             FROM attendance a
             JOIN users u ON u.id = a.user_id
             WHERE a.timestamp BETWEEN ? AND ?
-            GROUP BY u.user_name
+            ORDER BY u.user_name, a.timestamp ASC
         """, (start_datetime, end_datetime))
+
         records = c.fetchall()
 
         summary = []
-        for user_name, first_entry, last_exit in records:
-            duration = None
-            if first_entry and last_exit:
-                first_entry_dt = datetime.datetime.fromisoformat(first_entry)
-                last_exit_dt = datetime.datetime.fromisoformat(last_exit)
-                diff = last_exit_dt - first_entry_dt
-                duration = str(diff)
+        user_sessions = {}
+
+        # Step 2: Organize by user
+        for user_name, timestamp, status in records:
+            if user_name not in user_sessions:
+                user_sessions[user_name] = []
+            user_sessions[user_name].append((timestamp, status))
+
+        # Step 3: For each user, sum up all entry-exit durations
+        LOCAL_TZ = ZoneInfo('Asia/Kolkata')
+
+        for user_name, sessions in user_sessions.items():
+            total_duration = datetime.timedelta()
+            first_entry_str = 'N/A'
+            last_exit_str = 'N/A'
+            current_entry = None
+
+            for timestamp, status in sessions:
+                dt_utc = datetime.datetime.fromisoformat(timestamp).replace(tzinfo=ZoneInfo('UTC'))
+                dt_local = dt_utc.astimezone(LOCAL_TZ)
+
+                if status == 'entered':
+                    if not current_entry:
+                        current_entry = dt_local
+                        if first_entry_str == 'N/A':
+                            first_entry_str = current_entry.strftime('%Y-%m-%d %H:%M:%S')
+
+                elif status == 'exited' and current_entry:
+                    duration = dt_local - current_entry
+                    total_duration += duration
+                    last_exit_str = dt_local.strftime('%Y-%m-%d %H:%M:%S')
+                    current_entry = None
+
+            # Step 4: Format total_duration
+            if total_duration.total_seconds() > 0:
+                total_seconds = int(total_duration.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                seconds = total_seconds % 60
+                duration_str = f"{hours}h {minutes}m {seconds}s"
+            else:
+                duration_str = 'N/A'
+
             summary.append({
                 'user_name': user_name,
-                'first_entry': first_entry,
-                'last_exit': last_exit,
-                'duration': duration
+                'first_entry': first_entry_str,
+                'last_exit': last_exit_str,
+                'duration': duration_str
             })
 
+        # Step 5: Keep your employee count the same
         c.execute("SELECT COUNT(*) FROM users WHERE user_type='employee'")
         total_employees = c.fetchone()[0]
-        present_today = len(records)
+        present_today = len(summary)
 
         return render_template("org-templates/org-dashboard.html", 
                                summary=summary, 
                                total_employees=total_employees, 
                                present_today=present_today,
-                               date=today)
+                               date=selected_date,
+                               selected_date=selected_date_str)
 
 @app.route('/link-camera', methods=["GET", "POST"])
 @login_required
@@ -381,65 +460,72 @@ def employeeAttendance():
     # Get selected date from query params
     date_str = request.args.get('date')
     if not date_str:
-        # Default to today's date
         selected_date = datetime.datetime.now().date()
     else:
         selected_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
 
-    # Prepare start and end datetime strings
     start_datetime = f"{selected_date} 00:00:00"
     end_datetime = f"{selected_date} 23:59:59"
 
-    # Fetch records for the selected date
+    # Step 1: Fetch ALL records for the day (we will pair them manually)
     c.execute("""
-        SELECT u.user_name, DATE(a.timestamp) AS date, 
-            MIN(CASE WHEN a.status = 'entered' THEN a.timestamp END) AS first_entry, 
-            MAX(CASE WHEN a.status = 'exited' THEN a.timestamp END) AS last_exit
+        SELECT u.user_name, a.timestamp, a.status
         FROM attendance a
         JOIN users u ON u.id = a.user_id
         WHERE a.timestamp BETWEEN ? AND ?
-        GROUP BY u.user_name, date
-        ORDER BY u.user_name ASC
+        ORDER BY u.user_name, a.timestamp ASC
     """, (start_datetime, end_datetime))
+
     records = c.fetchall()
 
-    # Define your local timezone
-    LOCAL_TZ = ZoneInfo('Asia/Kolkata')  # Replace with your local timezone
+    # Step 2: Prepare
+    LOCAL_TZ = ZoneInfo('Asia/Kolkata')
+    user_sessions = {}
 
+    for user_name, timestamp, status in records:
+        if user_name not in user_sessions:
+            user_sessions[user_name] = []
+        user_sessions[user_name].append((timestamp, status))
+
+    # Step 3: Process
     attendance_summary = []
-    for record in records:
-        user_name, date_str, first_entry, last_exit = record
 
-        # Convert timestamps
-        if first_entry and last_exit:
-            # Parse the UTC timestamp
-            first_dt_utc = datetime.datetime.strptime(first_entry, '%Y-%m-%d %H:%M:%S')
-            last_dt_utc = datetime.datetime.strptime(last_exit, '%Y-%m-%d %H:%M:%S')
+    for user_name, sessions in user_sessions.items():
+        total_duration = datetime.timedelta()
+        first_entry_str = 'N/A'
+        last_exit_str = 'N/A'
+        current_entry = None
 
-            # Assume UTC timezone
-            first_dt_utc = first_dt_utc.replace(tzinfo=ZoneInfo('UTC'))
-            last_dt_utc = last_dt_utc.replace(tzinfo=ZoneInfo('UTC'))
+        for timestamp, status in sessions:
+            dt_utc = datetime.datetime.fromisoformat(timestamp).replace(tzinfo=ZoneInfo('UTC'))
+            dt_local = dt_utc.astimezone(LOCAL_TZ)
 
-            # Convert to local time
-            first_dt_local = first_dt_utc.astimezone(LOCAL_TZ)
-            last_dt_local = last_dt_utc.astimezone(LOCAL_TZ)
+            if status == 'entered':
+                if not current_entry:
+                    current_entry = dt_local
+                    if first_entry_str == 'N/A':
+                        first_entry_str = current_entry.strftime('%Y-%m-%d %H:%M:%S')
 
-            # Calculate duration
-            duration = last_dt_local - first_dt_local
-            total_seconds = int(duration.total_seconds())
+            elif status == 'exited' and current_entry:
+                duration = dt_local - current_entry
+                total_duration += duration
+                last_exit_str = dt_local.strftime('%Y-%m-%d %H:%M:%S')
+                current_entry = None
+
+        if total_duration.total_seconds() > 0:
+            total_seconds = int(total_duration.total_seconds())
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
             seconds = total_seconds % 60
             duration_str = f"{hours}h {minutes}m {seconds}s"
         else:
-            first_dt_local = last_dt_local = 'N/A'
             duration_str = 'N/A'
 
         attendance_summary.append({
             'user_name': user_name,
             'date': selected_date.strftime('%Y-%m-%d'),
-            'first_entry': first_dt_local.strftime('%Y-%m-%d %H:%M:%S') if first_entry else 'N/A',
-            'last_exit': last_dt_local.strftime('%Y-%m-%d %H:%M:%S') if last_exit else 'N/A',
+            'first_entry': first_entry_str,
+            'last_exit': last_exit_str,
             'total_duration': duration_str
         })
 
@@ -450,59 +536,75 @@ def employeeAttendance():
     )
 
 
-
 @app.route('/my-attendance')
 @login_required
 def myAttendance():
     db, c = get_db()
     user_id = session['user_id']
 
-    # Fetch attendance grouped by DATE
+    # Get selected date from query string
+    selected_date_str = request.args.get('date')
+    
+    if selected_date_str:
+        selected_date = datetime.datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+    else:
+        selected_date = datetime.date.today()
+
+    start_datetime = datetime.datetime.combine(selected_date, datetime.datetime.min.time())
+    end_datetime = datetime.datetime.combine(selected_date, datetime.datetime.max.time())
+
+    # Fetch all attendance records for the user
     c.execute("""
-        SELECT 
-            DATE(timestamp) AS date,
-            MIN(CASE WHEN status = 'entered' THEN timestamp END) AS first_entry,
-            MAX(CASE WHEN status = 'exited' THEN timestamp END) AS last_exit
+        SELECT timestamp, status
         FROM attendance
         WHERE user_id = ?
-        GROUP BY date
-        ORDER BY date DESC
-    """, (user_id,))
-
+        AND timestamp BETWEEN ? AND ?
+        ORDER BY timestamp ASC
+    """, (user_id, start_datetime, end_datetime))
     
     records = c.fetchall()
-    print(records)
 
+    # Prepare attendance_summary as list of individual entry-exit pairs
     attendance_summary = []
-    for record in records:
-        date_str, first_entry, last_exit = record
-        if first_entry and last_exit:
-            # Convert to datetime objects
-            first_dt = datetime.datetime.strptime(first_entry, '%Y-%m-%d %H:%M:%S')
-            last_dt = datetime.datetime.strptime(last_exit, '%Y-%m-%d %H:%M:%S')
+    current_entry = None
 
-            # Assuming UTC in DB, convert to local timezone (example: IST)
-            utc = pytz.utc
-            local_tz = pytz.timezone('Asia/Kolkata')  # Change as per your location
+    # Timezones
+    utc = pytz.utc
+    local_tz = pytz.timezone('Asia/Kolkata')  # Change if needed
 
-            first_local = utc.localize(first_dt).astimezone(local_tz)
-            last_local = utc.localize(last_dt).astimezone(local_tz)
+    for timestamp_str, status in records:
+        dt_utc = datetime.datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+        dt_local = utc.localize(dt_utc).astimezone(local_tz)
 
-            # Calculate duration
-            duration = last_local - first_local
+        if status == 'entered':
+            current_entry = dt_local
+
+        elif status == 'exited' and current_entry:
+            duration = dt_local - current_entry
 
             attendance_summary.append({
-                'date': first_local.strftime('%Y-%m-%d'),
-                'first_entry': first_local.strftime('%I:%M %p'),
-                'last_exit': last_local.strftime('%I:%M %p'),
+                'date': current_entry.strftime('%Y-%m-%d'),
+                'first_entry': current_entry.strftime('%I:%M %p'),
+                'last_exit': dt_local.strftime('%I:%M %p'),
                 'duration': str(duration)
             })
 
+            current_entry = None
+
+    # If there is an entry without exit (still in work)
+    if current_entry:
+        attendance_summary.append({
+            'date': current_entry.strftime('%Y-%m-%d'),
+            'first_entry': current_entry.strftime('%I:%M %p'),
+            'last_exit': 'In Work',
+            'duration': 'In Work'
+        })
+
     return render_template(
         "user-templates/my-attendance.html",
-        attendance_summary=attendance_summary
+        attendance_summary=attendance_summary, 
+        selected_date=selected_date
     )
-
 
 @app.route('/profile')
 @login_required

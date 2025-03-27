@@ -6,6 +6,17 @@
 <div class="mt-14 p-6">
     <h1 class="text-3xl font-bold text-gray-800 mb-6">My Attendance - {{ date }}</h1>
 
+    <div class="flex justify-center mb-6">
+        <form method="GET" action="{{ url_for('userDashboard') }}" class="flex items-center space-x-4">
+            <label for="date" class="text-gray-800 font-semibold">Select Date:</label>
+            <input type="date" id="date" name="date" value="{{ selected_date }}"
+                class="border border-gray-300 rounded-lg p-2 text-gray-800">
+            <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-700">
+                Filter
+            </button>
+        </form>
+    </div>
+
     <div class="grid grid-cols-3 gap-4">
         <div class="p-4 bg-green-500 text-white rounded-xl shadow-lg">
             <h2 class="text-xl">First Entry</h2>
